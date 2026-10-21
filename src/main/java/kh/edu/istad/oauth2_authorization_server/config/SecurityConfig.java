@@ -27,9 +27,6 @@ import org.springframework.security.config.annotation.web.configuration.OAuth2Au
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -37,7 +34,6 @@ import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -143,7 +139,9 @@ public class SecurityConfig {
 	@Order(2)
 	public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
 		http
+			.csrf((csrf) -> csrf.ignoringRequestMatchers("/api/**"))
 			.authorizeHttpRequests((authorize) -> authorize
+				.requestMatchers("/api/users/register").permitAll()
 				.anyRequest().authenticated()
 			)
 			// Form login handles the redirect to the login page from the authorization server filter chain
@@ -167,23 +165,6 @@ public class SecurityConfig {
 		return source;
 	}
 
-	// An instance of UserDetailsService for retrieving users to authenticate.
-	@Bean
-	public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
-		UserDetails user = User.builder()
-				.username("user")
-				.password(passwordEncoder.encode("password"))
-				.roles("USER")
-				.build();
-
-		UserDetails admin = User.builder()
-				.username("admin")
-				.password(passwordEncoder.encode("admin123"))
-				.roles("USER", "ADMIN")
-				.build();
-
-		return new InMemoryUserDetailsManager(user, admin);
-	}
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {

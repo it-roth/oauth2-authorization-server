@@ -12,6 +12,9 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import java.util.Set;
+import kh.edu.istad.oauth2_authorization_server.entity.User;
+import kh.edu.istad.oauth2_authorization_server.repository.UserRepository;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,14 +22,28 @@ public class DataInitializer implements CommandLineRunner {
 
 	private final RegisteredClientRepository clientRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final UserRepository userRepository;
 
-	public DataInitializer(RegisteredClientRepository clientRepository, PasswordEncoder passwordEncoder) {
+	public DataInitializer(RegisteredClientRepository clientRepository, PasswordEncoder passwordEncoder, UserRepository userRepository) {
 		this.clientRepository = clientRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.userRepository = userRepository;
 	}
 
 	@Override
 	public void run(String... args) {
+		if (!this.userRepository.existsByUsername("user")) {
+			User user = new User("user", this.passwordEncoder.encode("password"), "user@istad.edu.kh", "Standard User");
+			user.setRoles(Set.of("ROLE_USER"));
+			this.userRepository.save(user);
+		}
+
+		if (!this.userRepository.existsByUsername("admin")) {
+			User admin = new User("admin", this.passwordEncoder.encode("admin123"), "admin@istad.edu.kh", "System Admin");
+			admin.setRoles(Set.of("ROLE_USER", "ROLE_ADMIN"));
+			this.userRepository.save(admin);
+		}
+
 		RegisteredClient existingOidc = this.clientRepository.findByClientId("oidc-client");
 		String oidcId = (existingOidc != null) ? existingOidc.getId() : UUID.randomUUID().toString();
 		RegisteredClient oidcClient = RegisteredClient.withId(oidcId)
